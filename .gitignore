@@ -1,1 +1,7 @@
 node_modules/
+
+# added by GitSavvy
+.idea/
+
+# added by GitSavvy
+npm-debug.log
