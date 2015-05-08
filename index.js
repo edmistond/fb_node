@@ -66,6 +66,26 @@ var Feedbin = function(un, pw, url, ready) {
     });
   };
 
+  self.deleteSubscription = function(id, callback) {
+    request(
+      {
+        uri: self.apiBaseUrl + '/subscriptions/' + id + '.json',
+        method: 'DELETE',
+        timeout: 10000,
+        followRedirect: true,
+        maxRedirects: 10
+      }, function(err, res, body) {
+        console.log(body);
+        if (res.statusCode === 404) {
+          callback({status: res.statusCode, msg:" not found"}, null);
+        } else if (res.statusCode === 200 || res.statusCode === 204) {
+          callback(null, id + ' deleted.');
+        } else {
+          callback({status: res.statusCode, msg: err}, null);
+        }
+      });
+  };
+
   var getTags = function(callback) {
     request(self.apiBaseUrl + '/taggings.json', function(err, res, body) {
       if (!err && res.statusCode === 200) {
