@@ -88,21 +88,22 @@ var Feedbin = function(un, pw, url, ready) {
 
   var getTags = function(callback) {
     request(self.apiBaseUrl + '/taggings.json', function(err, res, body) {
-      if (!err && res.statusCode === 200) {
+      if (err || res.statusCode !== 200) {
+        callback(err, null);
+      } else {
         var tags = JSON.parse(body);
         var tagNames = _.chain(tags)
           .uniq(false, 'name')
           .pluck('name')
           .value();
 
+        tagNames.push('');
         var result = {
           tags: tags,
           tagNames: tagNames
         };
 
         callback(null, result);
-      } else {
-        callback(err, null);
       }
     });
   };
