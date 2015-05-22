@@ -56,55 +56,75 @@ var Feedbin = function(un, pw, url, ready) {
   };
 
   var getSubscriptions = function(callback) {
-    request(self.apiBaseUrl + '/subscriptions.json', function(err, res, body) {
+    makeRequest('subscriptions.json', function(err, res) {
+      if (err !== null) {
+        callback(err, null);
+      }
+      var subs = JSON.parse(res);
+      callback(null, subs);
+    });
+  };
+
+  var makeRequest = function(url, callback) {
+    request(self.apiBaseUrl + '/' + url, function(err, res, body) {
       if (!err && res.statusCode === 200) {
-        var subs = JSON.parse(body);
-        callback(null, subs);
+        callback(null, body);
       } else {
         callback(err, null);
       }
     });
   };
 
+  var postRequest = function(url, payload, callback) {
+    payload.uri = self.apiBaseUrl + '/' + url;
+    request(payload, function(err, res, body) {
+      if (res.statusCode === 404) {
+        callback({
+          status: res.statusCode,
+          msg: 'not found'
+        }, null);
+      } else if (res.statusCode === 200 || res.statusCode === 204) {
+        callback(null, res);
+      } else {
+        callback({
+          status: res.statusCode,
+          msg: err
+        }, null);
+      }
+    });
+  };
+
   self.deleteSubscription = function(id, callback) {
-    request(
-      {
-        uri: self.apiBaseUrl + '/subscriptions/' + id + '.json',
-        method: 'DELETE',
-        timeout: 10000,
-        followRedirect: true,
-        maxRedirects: 10
-      }, function(err, res, body) {
-        console.log(body);
-        if (res.statusCode === 404) {
-          callback({status: res.statusCode, msg:" not found"}, null);
-        } else if (res.statusCode === 200 || res.statusCode === 204) {
-          callback(null, id + ' deleted.');
-        } else {
-          callback({status: res.statusCode, msg: err}, null);
-        }
-      });
+    postRequest('subscriptions/' + id + '.json', {
+      method: 'DELETE',
+      timeout: 10000,
+      followRedirect: true,
+      maxRedirects: 10
+    }, function(err, res) {
+      if (err !== null) {
+        callback(err, null);
+      }
+      callback(null, id + ' deleted.');
+    });
   };
 
   var getTags = function(callback) {
-    request(self.apiBaseUrl + '/taggings.json', function(err, res, body) {
-      if (err || res.statusCode !== 200) {
+    makeRequest('taggings.json', function(err, res) {
+      if (err !== null) {
         callback(err, null);
-      } else {
-        var tags = JSON.parse(body);
-        var tagNames = _.chain(tags)
-          .uniq(false, 'name')
-          .pluck('name')
-          .value();
-
-        tagNames.push('');
-        var result = {
-          tags: tags,
-          tagNames: tagNames
-        };
-
-        callback(null, result);
       }
+      var tags = JSON.parse(res);
+      var tagNames = _.chain(tags)
+        .uniq(false, 'name')
+        .pluck('name')
+        .value();
+
+      tagNames.push('');
+      var result = {
+        tags: tags,
+        tagNames: tagNames
+      };
+      callback(null, result);
     });
   };
 
