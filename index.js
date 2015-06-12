@@ -37,13 +37,18 @@ var Feedbin = function(un, pw, url, ready) {
 
   self.getSubcriptionsForTag = function(tag) {
     return _.select(self.allSubs, function(sub) {
-      if (_.isEmpty(tag))
+      if (_.isEmpty(tag)) {
         return _.isEmpty(sub.tags);
-      else
+      }
+      else {
         return _.includes(sub.tags, tag);
+      }
     });
   };
 
+  // disabling jscs casing rule since we're working with the raw feedbin
+  // object
+  // jscs:disable requireCamelCaseOrUpperCaseIdentifiers
   var mergeSubsAndTags = function() {
     _.forEach(self.allSubs, function(sub, index) {
       self.allSubs[index].tags = _.chain(self.allTags)
@@ -54,6 +59,7 @@ var Feedbin = function(un, pw, url, ready) {
         .value();
     });
   };
+  // jscs:enable requireCamelCaseOrUpperCaseIdentifiers
 
   var getSubscriptions = function(callback) {
     makeRequest('subscriptions.json', function(err, res) {
@@ -69,7 +75,8 @@ var Feedbin = function(un, pw, url, ready) {
     request(self.apiBaseUrl + '/' + url, function(err, res, body) {
       if (!err && res.statusCode === 200) {
         callback(null, body);
-      } else {
+      }
+      else {
         callback(err, null);
       }
     });
@@ -83,9 +90,11 @@ var Feedbin = function(un, pw, url, ready) {
           status: res.statusCode,
           msg: 'not found'
         }, null);
-      } else if (res.statusCode === 200 || res.statusCode === 204) {
+      }
+      else if (res.statusCode === 200 || res.statusCode === 204) {
         callback(null, res);
-      } else {
+      }
+      else {
         callback({
           status: res.statusCode,
           msg: err
