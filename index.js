@@ -1,6 +1,7 @@
 var request = require('request');
 var _ = require('lodash');
 var async = require('async');
+var R = require('ramda');
 
 var Feedbin = function(un, pw, url, ready) {
   var self = this;
@@ -28,14 +29,27 @@ var Feedbin = function(un, pw, url, ready) {
     });
   };
 
-  self.getSingleSubByAttributeObject = function(attrib) {
-    return _.chain(self.allSubs)
-      .filter(attrib)
-      .first()
-      .value();
-  };
+  // self.getSingleSubByAttributeObject = function(attrib) {
+  //   return _.chain(self.allSubs)
+  //     .filter(attrib)
+  //     .first()
+  //     .value();
+  // };
 
   self.getSubcriptionsForTag = function(tag) {
+    var filterFn = function(sub) {
+      if (R.isEmpty(tag)) {
+        return R.isEmpty(sub.tags);
+      }
+      else {
+        return R.contains(tag, sub.tags);
+      }
+    }
+
+    return R.filter(filterFn, self.allSubs);
+  };
+
+  self.getOldSubcriptionsForTag = function(tag) {
     return _.select(self.allSubs, function(sub) {
       if (_.isEmpty(tag)) {
         return _.isEmpty(sub.tags);
@@ -46,18 +60,26 @@ var Feedbin = function(un, pw, url, ready) {
     });
   };
 
-  // disabling jscs casing rule since we're working with the raw feedbin
-  // object
+  // disabling jscs casing rule since we're working with the raw feedbin object
   // jscs:disable requireCamelCaseOrUpperCaseIdentifiers
   var mergeSubsAndTags = function() {
-    _.forEach(self.allSubs, function(sub, index) {
-      self.allSubs[index].tags = _.chain(self.allTags)
-        .filter({
-          feed_id: sub.feed_id
-        })
-        .pluck('name')
-        .value();
-    });
+    var mergeTagsForSub = function(allTags, sub) {
+      var filterTags = function(t) {return t.feed_id === sub.feed_id};
+      sub.tags = R.pluck('name')(R.filter(filterTags, allTags));
+    };
+
+    var curriedMerger = R.curry(mergeTagsForSub);
+    var merger = curriedMerger(self.allTags);
+    R.forEach(merger, self.allSubs);
+
+    // _.forEach(self.allSubs, function(sub, index) {
+    //   self.allSubs[index].tags = _.chain(self.allTags)
+    //     .filter({
+    //       feed_id: sub.feed_id
+    //     })
+    //     .pluck('name')
+    //     .value();
+    // });
   };
   // jscs:enable requireCamelCaseOrUpperCaseIdentifiers
 
@@ -123,12 +145,9 @@ var Feedbin = function(un, pw, url, ready) {
         callback(err, null);
       }
       var tags = JSON.parse(res);
-      var tagNames = _.chain(tags)
-        .uniq(false, 'name')
-        .pluck('name')
-        .value();
-
+      var tagNames = R.compose(R.uniq, R.pluck('name'))(tags);
       tagNames.push('');
+
       var result = {
         tags: tags,
         tagNames: tagNames
